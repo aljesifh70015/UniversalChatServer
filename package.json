@@ -1,5 +1,5 @@
 {
-  "name": "universal-chat-server",
+  "name": "chat-server",
   "version": "1.0.0",
   "main": "server.js",
   "dependencies": {
