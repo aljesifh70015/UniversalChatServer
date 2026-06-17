@@ -10,12 +10,16 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-// 🔥 MongoDB CONNECT
+// MongoDB connect
 mongoose.connect("mongodb+srv://aljesifhoque_db_user:<67UF0MniHFtG98d2>@cluster0.k3jzopc.mongodb.net/?appName=Cluster0")
-.then(()=>console.log("MongoDB Connected"))
-.catch(err=>console.log(err));
+.then(() => console.log("MongoDB Connected"))
+.catch(err => console.log(err));
 
-// 🔥 SOCKET
+// MODELS
+const User = require("./models/User");
+const Message = require("./models/Message");
+
+// SOCKET
 const io = new Server(server, {
     cors: {
         origin: "*"
@@ -26,13 +30,17 @@ io.on("connection", (socket) => {
 
     console.log("User connected:", socket.id);
 
-    // JOIN ROOM
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
     });
 
-    // SEND MESSAGE
-    socket.on("send_message", (data) => {
+    socket.on("send_message", async (data) => {
+
+        // save to DB
+        const msg = new Message(data);
+        await msg.save();
+
+        // broadcast
         io.to(data.roomId).emit("receive_message", data);
     });
 
@@ -41,11 +49,11 @@ io.on("connection", (socket) => {
     });
 });
 
-// 🔥 ROUTES
+// basic route
 app.get("/", (req, res) => {
-    res.send("Server Running");
+    res.send("Chat Server Running");
 });
 
 server.listen(3000, () => {
-    console.log("Server started on port 3000");
+    console.log("Server running on port 3000");
 });
