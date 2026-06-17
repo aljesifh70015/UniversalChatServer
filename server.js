@@ -76,7 +76,21 @@ app.get("/friends/:uid", async (req, res) => {
 
     res.json(user.friends);
 });
+// SEARCH USER BY UID
+app.get("/user/:uid", async (req, res) => {
+    const uid = req.params.uid;
 
+    const user = await usersCollection.findOne({ uid });
+
+    if (!user) {
+        return res.json({ status: "not_found" });
+    }
+
+    res.json({
+        uid: user.uid,
+        username: user.username
+    });
+});
 // ================= SOCKET =================
 
 io.on("connection", (socket) => {
