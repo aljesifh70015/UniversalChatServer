@@ -17,7 +17,7 @@ const io = new Server(server, {
 
 // ================= MONGO =================
 
-const uri = "mongodb+srv://aljesifhoque_db_user:<db_password>@cluster0.k3jzopc.mongodb.net/?appName=Cluster0"
+const uri = "mongodb+srv://aljesifhoque_db_user:<67UF0MniHFtG98d2>@cluster0.k3jzopc.mongodb.net/?appName=Cluster0"
 const client = new MongoClient(uri);
 
 let usersCollection;
