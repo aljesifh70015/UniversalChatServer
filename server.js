@@ -19,25 +19,25 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // Send message
+    socket.on("join_room", (roomId) => {
+        socket.join(roomId);
+        console.log("Joined room:", roomId);
+    });
+
     socket.on("send_message", (data) => {
-        console.log("Message:", data);
-        io.emit("receive_message", data);
+        socket.to(data.room).emit("receive_message", data);
     });
 
-    // Typing
-    socket.on("typing", () => {
-        socket.broadcast.emit("typing");
+    socket.on("typing", (roomId) => {
+        socket.to(roomId).emit("typing");
     });
 
-    // Stop typing
-    socket.on("stop_typing", () => {
-        socket.broadcast.emit("stop_typing");
+    socket.on("stop_typing", (roomId) => {
+        socket.to(roomId).emit("stop_typing");
     });
 
-    // Seen
-    socket.on("seen", () => {
-        socket.broadcast.emit("seen");
+    socket.on("seen", (roomId) => {
+        socket.to(roomId).emit("seen");
     });
 
     socket.on("disconnect", () => {
@@ -46,7 +46,6 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log("Server running on port " + PORT);
 });
