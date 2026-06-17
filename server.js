@@ -6,22 +6,42 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+app.get("/", (req, res) => {
+    res.send("Universal Chat Server Running");
 });
 
 io.on("connection", (socket) => {
+    console.log("User connected:", socket.id);
+
+    socket.on("join_room", (roomId) => {
+        socket.join(roomId);
+    });
 
     socket.on("send_message", (data) => {
-        socket.broadcast.emit("receive_message", data);
+        socket.to(data.room).emit("receive_message", data);
     });
 
-    socket.on("delete_message", (messageId) => {
-        io.emit("delete_message", messageId);
+    socket.on("typing", (roomId) => {
+        socket.to(roomId).emit("typing");
     });
-});
 
-app.get("/", (req,res)=>{
-    res.send("Universal Chat Server Running");
+    socket.on("stop_typing", (roomId) => {
+        socket.to(roomId).emit("stop_typing");
+    });
+
+    socket.on("seen", (roomId) => {
+        socket.to(roomId).emit("seen");
+    });
+
+    socket.on("disconnect", () => {
+        console.log("User disconnected:", socket.id);
+    });
 });
 
 server.listen(process.env.PORT || 3000);
