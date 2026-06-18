@@ -17,7 +17,8 @@ mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k
 const User = require("./models/User");
 const Message = require("./models/Message");
 
-const userLastSeen = {};
+// socket.id -> uid map
+const socketUsers = {};
 
 // ================= API =================
 
@@ -115,6 +116,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("user_online", (uid) => {
+        socketUsers[socket.id] = uid;
+
         io.emit("user_status", {
             uid: uid,
             status: "Online"
@@ -140,8 +143,6 @@ io.on("connection", (socket) => {
                 hour: "2-digit",
                 minute: "2-digit"
             });
-
-        userLastSeen[uid] = lastSeen;
 
         io.emit("user_status", {
             uid: uid,
@@ -172,6 +173,28 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
+        const uid = socketUsers[socket.id];
+
+        if (uid) {
+            const now = new Date();
+
+            const lastSeen =
+                "Last seen " +
+                now.toLocaleDateString() +
+                " " +
+                now.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+
+            io.emit("user_status", {
+                uid: uid,
+                status: lastSeen
+            });
+
+            delete socketUsers[socket.id];
+        }
+
         console.log("User disconnected");
     });
 });
