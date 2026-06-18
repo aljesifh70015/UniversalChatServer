@@ -17,6 +17,10 @@ mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k
 const User = require("./models/User");
 const Message = require("./models/Message");
 
+const userLastSeen = {};
+
+// ================= API =================
+
 // Register
 app.post("/register", async (req, res) => {
     try {
@@ -39,7 +43,9 @@ app.get("/user/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
 
-        if (!user) return res.status(404).json({ found: false });
+        if (!user) {
+            return res.status(404).json({ found: false });
+        }
 
         res.json({
             found: true,
@@ -94,6 +100,8 @@ app.get("/friends/:uid", async (req, res) => {
     }
 });
 
+// ================= SOCKET =================
+
 const io = new Server(server, {
     cors: { origin: "*" }
 });
@@ -103,31 +111,42 @@ io.on("connection", (socket) => {
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
-        // user online
-socket.on("user_online", (uid) => {
-    socket.broadcast.emit("user_status", {
-        uid: uid,
-        status: "Online"
+        console.log("Joined room:", roomId);
     });
-});
 
-// typing
-socket.on("typing", (data) => {
-    socket.to(data.roomId).emit("typing", data.sender);
-});
-
-// stop typing
-socket.on("stop_typing", (roomId) => {
-    socket.to(roomId).emit("stop_typing");
-});
-
-// offline
-socket.on("user_offline", (uid) => {
-    socket.broadcast.emit("user_status", {
-        uid: uid,
-        status: "Last seen recently"
+    socket.on("user_online", (uid) => {
+        io.emit("user_status", {
+            uid: uid,
+            status: "Online"
+        });
     });
-});
+
+    socket.on("typing", (data) => {
+        socket.to(data.roomId).emit("typing");
+    });
+
+    socket.on("stop_typing", (roomId) => {
+        socket.to(roomId).emit("stop_typing");
+    });
+
+    socket.on("user_offline", (uid) => {
+        const now = new Date();
+
+        const lastSeen =
+            "Last seen " +
+            now.toLocaleDateString() +
+            " " +
+            now.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+        userLastSeen[uid] = lastSeen;
+
+        io.emit("user_status", {
+            uid: uid,
+            status: lastSeen
+        });
     });
 
     socket.on("send_message", async (data) => {
