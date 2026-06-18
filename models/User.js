@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
         default: []
     },
 
-    pendingRequests: {
+    friendRequests: {
         type: [String],
         default: []
     }
