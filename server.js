@@ -103,6 +103,31 @@ io.on("connection", (socket) => {
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
+        // user online
+socket.on("user_online", (uid) => {
+    socket.broadcast.emit("user_status", {
+        uid: uid,
+        status: "Online"
+    });
+});
+
+// typing
+socket.on("typing", (data) => {
+    socket.to(data.roomId).emit("typing", data.sender);
+});
+
+// stop typing
+socket.on("stop_typing", (roomId) => {
+    socket.to(roomId).emit("stop_typing");
+});
+
+// offline
+socket.on("user_offline", (uid) => {
+    socket.broadcast.emit("user_status", {
+        uid: uid,
+        status: "Last seen recently"
+    });
+});
     });
 
     socket.on("send_message", async (data) => {
