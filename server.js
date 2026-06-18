@@ -10,7 +10,6 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-// MongoDB
 mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k3jzopc.mongodb.net/?appName=Cluster0")
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
@@ -22,10 +21,11 @@ const userLastSeen = {};
 
 // ================= API =================
 
-// Register
+// Register / Login
 app.post("/register", async (req, res) => {
     try {
         const { uid, username } = req.body;
+
         let user = await User.findOne({ uid });
 
         if (!user) {
@@ -63,7 +63,7 @@ app.get("/user/:uid", async (req, res) => {
     }
 });
 
-// Send Friend Request
+// Send friend request
 app.post("/send_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -79,7 +79,7 @@ app.post("/send_friend_request", async (req, res) => {
 
         if (friend.friendRequests.includes(myUid)) {
             return res.json({
-                message: "Already requested"
+                message: "Request already sent"
             });
         }
 
@@ -99,7 +99,7 @@ app.post("/send_friend_request", async (req, res) => {
     }
 });
 
-// Get Friend Requests
+// Get pending requests
 app.get("/friend_requests/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
@@ -108,14 +108,13 @@ app.get("/friend_requests/:uid", async (req, res) => {
             return res.status(404).json([]);
         }
 
-        res.json(user.friendRequests);
-
+        res.json(user.friendRequests || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Accept Friend Request
+// Accept request
 app.post("/accept_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -144,14 +143,14 @@ app.post("/accept_friend_request", async (req, res) => {
         await me.save();
         await friend.save();
 
-        res.json({ message: "Friend Added" });
+        res.json({ message: "Accepted" });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Reject Friend Request
+// Reject request
 app.post("/reject_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -170,18 +169,16 @@ app.post("/reject_friend_request", async (req, res) => {
 
         await me.save();
 
-        res.json({ message: "Request Rejected" });
+        res.json({ message: "Rejected" });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// OLD Add Friend (compatibility)
+// Old add friend route (compatibility)
 app.post("/add_friend", async (req, res) => {
-    res.json({
-        message: "Use send_friend_request"
-    });
+    res.json({ message: "Use friend request system" });
 });
 
 // Message history
@@ -197,17 +194,16 @@ app.get("/messages/:roomId", async (req, res) => {
     }
 });
 
-// Friends
+// Friends list
 app.get("/friends/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
 
         if (!user) {
-            return res.json([]);
+            return res.status(404).json([]);
         }
 
-        res.json(user.friends);
-
+        res.json(user.friends || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -224,11 +220,12 @@ io.on("connection", (socket) => {
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
+        console.log("Joined room:", roomId);
     });
 
     socket.on("user_online", (uid) => {
         io.emit("user_status", {
-            uid: uid,
+            uid,
             status: "Online"
         });
     });
@@ -256,7 +253,7 @@ io.on("connection", (socket) => {
         userLastSeen[uid] = lastSeen;
 
         io.emit("user_status", {
-            uid: uid,
+            uid,
             status: lastSeen
         });
     });
@@ -274,7 +271,6 @@ io.on("connection", (socket) => {
 
             io.to(data.roomId).emit("receive_message", data);
             io.to(data.roomId).emit("message_delivered");
-
         } catch (err) {
             console.log(err);
         }
@@ -289,7 +285,6 @@ io.on("connection", (socket) => {
     });
 });
 
-// Root
 app.get("/", (req, res) => {
     res.send("Chat server running");
 });
