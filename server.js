@@ -17,19 +17,24 @@ mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k
 const User = require("./models/User");
 const Message = require("./models/Message");
 
-// socket.id -> uid map
-const socketUsers = {};
+const userLastSeen = {};
 
-// ================= API =================
 
-// Register
+// REGISTER
 app.post("/register", async (req, res) => {
     try {
         const { uid, username } = req.body;
+
         let user = await User.findOne({ uid });
 
         if (!user) {
-            user = new User({ uid, username });
+            user = new User({
+                uid,
+                username,
+                friends: [],
+                pendingRequests: []
+            });
+
             await user.save();
         }
 
@@ -39,43 +44,81 @@ app.post("/register", async (req, res) => {
     }
 });
 
-// Search user
-app.get("/user/:uid", async (req, res) => {
+
+// SEND FRIEND REQUEST
+app.post("/send_request", async (req, res) => {
     try {
-        const user = await User.findOne({ uid: req.params.uid });
-
-        if (!user) {
-            return res.status(404).json({ found: false });
-        }
-
-        res.json({
-            found: true,
-            uid: user.uid,
-            username: user.username
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Add friend
-app.post("/add_friend", async (req, res) => {
-    try {
-        const { friendUid } = req.body;
+        const { myUid, friendUid } = req.body;
 
         const friend = await User.findOne({ uid: friendUid });
 
         if (!friend) {
-            return res.status(404).json({ message: "Friend not found" });
+            return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({ message: "Friend Added" });
+        if (!friend.pendingRequests.includes(myUid)) {
+            friend.pendingRequests.push(myUid);
+            await friend.save();
+        }
+
+        res.json({ message: "Request sent" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Message history
+
+// GET REQUESTS
+app.get("/requests/:uid", async (req, res) => {
+    try {
+        const user = await User.findOne({ uid: req.params.uid });
+        res.json(user.pendingRequests);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ACCEPT REQUEST
+app.post("/accept_request", async (req, res) => {
+    try {
+        const { myUid, friendUid } = req.body;
+
+        const me = await User.findOne({ uid: myUid });
+        const friend = await User.findOne({ uid: friendUid });
+
+        me.pendingRequests = me.pendingRequests.filter(
+            uid => uid !== friendUid
+        );
+
+        if (!me.friends.includes(friendUid))
+            me.friends.push(friendUid);
+
+        if (!friend.friends.includes(myUid))
+            friend.friends.push(myUid);
+
+        await me.save();
+        await friend.save();
+
+        res.json({ message: "Accepted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// FRIENDS
+app.get("/friends/:uid", async (req, res) => {
+    try {
+        const user = await User.findOne({ uid: req.params.uid });
+        res.json(user.friends);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// MESSAGE HISTORY
 app.get("/messages/:roomId", async (req, res) => {
     try {
         const messages = await Message.find({
@@ -88,21 +131,8 @@ app.get("/messages/:roomId", async (req, res) => {
     }
 });
 
-// Friends
-app.get("/friends/:uid", async (req, res) => {
-    try {
-        const users = await User.find({
-            uid: { $ne: req.params.uid }
-        });
 
-        res.json(users.map(u => u.uid));
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ================= SOCKET =================
-
+// SOCKET
 const io = new Server(server, {
     cors: { origin: "*" }
 });
@@ -112,14 +142,11 @@ io.on("connection", (socket) => {
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
-        console.log("Joined room:", roomId);
     });
 
     socket.on("user_online", (uid) => {
-        socketUsers[socket.id] = uid;
-
         io.emit("user_status", {
-            uid: uid,
+            uid,
             status: "Online"
         });
     });
@@ -144,28 +171,26 @@ io.on("connection", (socket) => {
                 minute: "2-digit"
             });
 
+        userLastSeen[uid] = lastSeen;
+
         io.emit("user_status", {
-            uid: uid,
+            uid,
             status: lastSeen
         });
     });
 
     socket.on("send_message", async (data) => {
-        try {
-            const msg = new Message({
-                roomId: data.roomId,
-                sender: data.sender,
-                message: data.message,
-                timestamp: Date.now()
-            });
+        const msg = new Message({
+            roomId: data.roomId,
+            sender: data.sender,
+            message: data.message,
+            timestamp: Date.now()
+        });
 
-            await msg.save();
+        await msg.save();
 
-            io.to(data.roomId).emit("receive_message", data);
-            io.to(data.roomId).emit("message_delivered");
-        } catch (err) {
-            console.log(err);
-        }
+        io.to(data.roomId).emit("receive_message", data);
+        io.to(data.roomId).emit("message_delivered");
     });
 
     socket.on("message_seen", (roomId) => {
@@ -173,28 +198,6 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        const uid = socketUsers[socket.id];
-
-        if (uid) {
-            const now = new Date();
-
-            const lastSeen =
-                "Last seen " +
-                now.toLocaleDateString() +
-                " " +
-                now.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                });
-
-            io.emit("user_status", {
-                uid: uid,
-                status: lastSeen
-            });
-
-            delete socketUsers[socket.id];
-        }
-
         console.log("User disconnected");
     });
 });
