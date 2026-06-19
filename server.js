@@ -209,6 +209,47 @@ app.get("/friends/:uid", async (req, res) => {
     }
 });
 
+app.get("/chat_list/:uid", async (req, res) => {
+    try {
+        const myUid = req.params.uid
+
+        const user = await User.findOne({ uid: myUid })
+
+        if (!user) {
+            return res.json([])
+        }
+
+        const chatList = []
+
+        for (const friendUid of user.friends) {
+            const friend = await User.findOne({ uid: friendUid })
+
+            let roomId =
+                myUid < friendUid
+                    ? `${myUid}_${friendUid}`
+                    : `${friendUid}_${myUid}`
+
+            const lastMessage = await Message.findOne({ roomId })
+                .sort({ timestamp: -1 })
+
+            chatList.push({
+                uid: friendUid,
+                username: friend?.username || friendUid,
+                lastMessage: lastMessage?.message || "No messages yet",
+                timestamp: lastMessage?.timestamp || 0
+            })
+        }
+
+        chatList.sort((a, b) => b.timestamp - a.timestamp)
+
+        res.json(chatList)
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        })
+    }
+})
 // ================= SOCKET =================
 
 const io = new Server(server, {
