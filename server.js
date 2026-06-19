@@ -37,7 +37,7 @@ function getExpiryTime(expiryOption) {
 setInterval(async () => {
     try {
         await Message.deleteMany({
-            expiresAt: { $lte: Date.now() }
+            expiresAt: { $gt: 0, $lte: Date.now() }
         });
         console.log("Expired messages deleted");
     } catch (e) {
@@ -72,9 +72,7 @@ app.get("/user/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
 
-        if (!user) {
-            return res.status(404).json({ found: false });
-        }
+        if (!user) return res.status(404).json({ found: false });
 
         res.json({
             found: true,
@@ -147,7 +145,6 @@ app.post("/accept_friend_request", async (req, res) => {
 app.post("/reject_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
-
         const me = await User.findOne({ uid: myUid });
 
         me.friendRequests = me.friendRequests.filter(uid => uid !== friendUid);
@@ -161,13 +158,45 @@ app.post("/reject_friend_request", async (req, res) => {
 
 app.get("/messages/:roomId", async (req, res) => {
     try {
+        const uid = req.query.uid;
+
         const messages = await Message.find({
-            roomId: req.params.roomId
+            roomId: req.params.roomId,
+            deletedFor: { $ne: uid }
         }).sort({ timestamp: 1 });
 
         res.json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.post("/delete_for_me", async (req, res) => {
+    try {
+        const { messageId, uid } = req.body;
+
+        await Message.findByIdAndUpdate(messageId, {
+            $addToSet: { deletedFor: uid }
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post("/edit_message", async (req, res) => {
+    try {
+        const { messageId, newText } = req.body;
+
+        await Message.findByIdAndUpdate(messageId, {
+            message: newText,
+            edited: true
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -207,7 +236,6 @@ io.on("connection", (socket) => {
 
     socket.on("user_offline", (uid) => {
         const lastSeen = "Last seen " + new Date().toLocaleString();
-
         userLastSeen[uid] = lastSeen;
         io.emit("user_status", { uid, status: lastSeen });
     });
@@ -219,16 +247,17 @@ io.on("connection", (socket) => {
                 sender: data.sender,
                 message: data.message,
                 timestamp: Date.now(),
-                expiresAt: getExpiryTime(data.expiryOption),
-                deletedForEveryone: false,
-                edited: false
+                expiresAt: getExpiryTime(data.expiryOption)
             });
 
             await msg.save();
 
             io.to(data.roomId).emit("receive_message", {
-                ...data,
-                _id: msg._id
+                _id: msg._id,
+                roomId: msg.roomId,
+                sender: msg.sender,
+                message: msg.message,
+                timestamp: msg.timestamp
             });
 
             io.to(data.roomId).emit("message_delivered");
