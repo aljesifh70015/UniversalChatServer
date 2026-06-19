@@ -1,12 +1,6 @@
 const mongoose = require("mongoose");
 
 const MessageSchema = new mongoose.Schema({
-    messageId: {
-        type: String,
-        required: true,
-        unique: true
-    },
-
     roomId: {
         type: String,
         required: true
@@ -35,6 +29,11 @@ const MessageSchema = new mongoose.Schema({
     deletedFor: {
         type: [String],
         default: []
+    },
+
+    deletedForEveryone: {
+        type: Boolean,
+        default: false
     },
 
     edited: {
