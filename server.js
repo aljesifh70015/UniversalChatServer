@@ -19,13 +19,37 @@ const Message = require("./models/Message");
 
 const userLastSeen = {};
 
+function getExpiryTime(expiryOption) {
+    const now = Date.now();
+
+    switch (expiryOption) {
+        case "1d": return now + 86400000;
+        case "2d": return now + 86400000 * 2;
+        case "3d": return now + 86400000 * 3;
+        case "1w": return now + 86400000 * 7;
+        case "2w": return now + 86400000 * 14;
+        case "3w": return now + 86400000 * 21;
+        case "1m": return now + 86400000 * 30;
+        default: return now + 86400000;
+    }
+}
+
+setInterval(async () => {
+    try {
+        await Message.deleteMany({
+            expiresAt: { $lte: Date.now() }
+        });
+        console.log("Expired messages deleted");
+    } catch (e) {
+        console.log(e);
+    }
+}, 60000);
+
 // ================= API =================
 
-// Register / Login
 app.post("/register", async (req, res) => {
     try {
         const { uid, username } = req.body;
-
         let user = await User.findOne({ uid });
 
         if (!user) {
@@ -44,7 +68,6 @@ app.post("/register", async (req, res) => {
     }
 });
 
-// Search user
 app.get("/user/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
@@ -63,7 +86,6 @@ app.get("/user/:uid", async (req, res) => {
     }
 });
 
-// Send friend request
 app.post("/send_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -72,49 +94,35 @@ app.post("/send_friend_request", async (req, res) => {
         const friend = await User.findOne({ uid: friendUid });
 
         if (!me || !friend) {
-            return res.status(404).json({
-                message: "User not found"
-            });
+            return res.status(404).json({ message: "User not found" });
         }
 
         if (friend.friendRequests.includes(myUid)) {
-            return res.json({
-                message: "Request already sent"
-            });
+            return res.json({ message: "Request already sent" });
         }
 
         if (friend.friends.includes(myUid)) {
-            return res.json({
-                message: "Already friends"
-            });
+            return res.json({ message: "Already friends" });
         }
 
         friend.friendRequests.push(myUid);
         await friend.save();
 
         res.json({ message: "Request Sent" });
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get pending requests
 app.get("/friend_requests/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
-
-        if (!user) {
-            return res.status(404).json([]);
-        }
-
-        res.json(user.friendRequests || []);
+        res.json(user?.friendRequests || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Accept request
 app.post("/accept_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -122,66 +130,35 @@ app.post("/accept_friend_request", async (req, res) => {
         const me = await User.findOne({ uid: myUid });
         const friend = await User.findOne({ uid: friendUid });
 
-        if (!me || !friend) {
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
+        me.friendRequests = me.friendRequests.filter(uid => uid !== friendUid);
 
-        me.friendRequests = me.friendRequests.filter(
-            uid => uid !== friendUid
-        );
-
-        if (!me.friends.includes(friendUid)) {
-            me.friends.push(friendUid);
-        }
-
-        if (!friend.friends.includes(myUid)) {
-            friend.friends.push(myUid);
-        }
+        if (!me.friends.includes(friendUid)) me.friends.push(friendUid);
+        if (!friend.friends.includes(myUid)) friend.friends.push(myUid);
 
         await me.save();
         await friend.save();
 
         res.json({ message: "Accepted" });
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Reject request
 app.post("/reject_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
 
         const me = await User.findOne({ uid: myUid });
 
-        if (!me) {
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
-
-        me.friendRequests = me.friendRequests.filter(
-            uid => uid !== friendUid
-        );
-
+        me.friendRequests = me.friendRequests.filter(uid => uid !== friendUid);
         await me.save();
 
         res.json({ message: "Rejected" });
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Old add friend route (compatibility)
-app.post("/add_friend", async (req, res) => {
-    res.json({ message: "Use friend request system" });
-});
-
-// Message history
 app.get("/messages/:roomId", async (req, res) => {
     try {
         const messages = await Message.find({
@@ -194,16 +171,10 @@ app.get("/messages/:roomId", async (req, res) => {
     }
 });
 
-// Friends list
 app.get("/friends/:uid", async (req, res) => {
     try {
         const user = await User.findOne({ uid: req.params.uid });
-
-        if (!user) {
-            return res.status(404).json([]);
-        }
-
-        res.json(user.friends || []);
+        res.json(user?.friends || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -220,14 +191,10 @@ io.on("connection", (socket) => {
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
-        console.log("Joined room:", roomId);
     });
 
     socket.on("user_online", (uid) => {
-        io.emit("user_status", {
-            uid,
-            status: "Online"
-        });
+        io.emit("user_status", { uid, status: "Online" });
     });
 
     socket.on("typing", (data) => {
@@ -239,23 +206,10 @@ io.on("connection", (socket) => {
     });
 
     socket.on("user_offline", (uid) => {
-        const now = new Date();
-
-        const lastSeen =
-            "Last seen " +
-            now.toLocaleDateString() +
-            " " +
-            now.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-            });
+        const lastSeen = "Last seen " + new Date().toLocaleString();
 
         userLastSeen[uid] = lastSeen;
-
-        io.emit("user_status", {
-            uid,
-            status: lastSeen
-        });
+        io.emit("user_status", { uid, status: lastSeen });
     });
 
     socket.on("send_message", async (data) => {
@@ -264,16 +218,41 @@ io.on("connection", (socket) => {
                 roomId: data.roomId,
                 sender: data.sender,
                 message: data.message,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                expiresAt: getExpiryTime(data.expiryOption),
+                deletedForEveryone: false,
+                edited: false
             });
 
             await msg.save();
 
-            io.to(data.roomId).emit("receive_message", data);
+            io.to(data.roomId).emit("receive_message", {
+                ...data,
+                _id: msg._id
+            });
+
             io.to(data.roomId).emit("message_delivered");
         } catch (err) {
             console.log(err);
         }
+    });
+
+    socket.on("delete_for_everyone", async (messageId) => {
+        await Message.findByIdAndUpdate(messageId, {
+            message: "This message was deleted",
+            deletedForEveryone: true
+        });
+
+        io.emit("message_deleted", messageId);
+    });
+
+    socket.on("edit_message", async (data) => {
+        await Message.findByIdAndUpdate(data.messageId, {
+            message: data.newText,
+            edited: true
+        });
+
+        io.emit("message_edited", data);
     });
 
     socket.on("message_seen", (roomId) => {
