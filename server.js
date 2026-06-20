@@ -263,9 +263,26 @@ io.on("connection", (socket) => {
         socket.join(roomId);
     });
 
-    socket.on("user_online", (uid) => {
-        io.emit("user_status", { uid, status: "Online" });
-    });
+    const onlineUsers = {};
+
+socket.on("user_online", (uid) => {
+    onlineUsers[uid] = socket.id;
+    io.emit("user_status", { uid, status: "Online" });
+});
+
+socket.on("disconnect", () => {
+    for (const uid in onlineUsers) {
+        if (onlineUsers[uid] === socket.id) {
+            delete onlineUsers[uid];
+
+            io.emit("user_status", {
+                uid,
+                status: "Offline"
+            });
+            break;
+        }
+    }
+});
 
     socket.on("typing", (data) => {
         socket.to(data.roomId).emit("typing");
