@@ -12,6 +12,26 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
 
+    email: {
+        type: String,
+        default: ""
+    },
+
+    password: {
+        type: String,
+        default: ""
+    },
+
+    verified: {
+        type: Boolean,
+        default: false
+    },
+
+    loggedInDevice: {
+        type: String,
+        default: ""
+    },
+
     friends: {
         type: [String],
         default: []
