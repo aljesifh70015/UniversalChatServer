@@ -49,22 +49,74 @@ setInterval(async () => {
 
 app.post("/register", async (req, res) => {
     try {
-        const { uid, username } = req.body;
+        const {
+            uid,
+            username,
+            email,
+            password,
+            deviceId
+        } = req.body;
+
+        if (!uid || !username || !email || !password || !deviceId) {
+            return res.status(400).json({
+                message: "Missing required fields"
+            });
+        }
+
         let user = await User.findOne({ uid });
 
+        // New account create
         if (!user) {
             user = new User({
                 uid,
                 username,
+                email,
+                password,
+                verified: true,
+                loggedInDevice: deviceId,
                 friends: [],
                 friendRequests: []
             });
+
             await user.save();
+
+            return res.json({
+                message: "registered",
+                success: true
+            });
         }
 
-        res.json({ message: "success" });
+        // Existing user login
+        if (user.password !== password) {
+            return res.status(401).json({
+                message: "Wrong password",
+                success: false
+            });
+        }
+
+        // Block other device login
+        if (
+            user.loggedInDevice &&
+            user.loggedInDevice !== deviceId
+        ) {
+            return res.status(403).json({
+                message: "Account already logged in on another device",
+                success: false
+            });
+        }
+
+        user.loggedInDevice = deviceId;
+        await user.save();
+
+        res.json({
+            message: "login_success",
+            success: true
+        });
+
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({
+            error: err.message
+        });
     }
 });
 
