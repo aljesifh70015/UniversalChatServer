@@ -302,6 +302,23 @@ app.get("/chat_list/:uid", async (req, res) => {
         })
     }
 })
+
+app.post("/logout/:uid", async (req, res) => {
+    try {
+        const uid = req.params.uid
+
+        await User.updateOne(
+            { uid },
+            { $set: { loggedInDevice: "" } }
+        )
+
+        res.json({ message: "logout_success" })
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        })
+    }
+});
 // ================= SOCKET =================
 
 const io = new Server(server, {
