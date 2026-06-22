@@ -136,6 +136,37 @@ app.get("/user/:uid", async (req, res) => {
     }
 });
 
+app.get("/search_user/:query", async (req, res) => {
+    try {
+        const query = req.params.query;
+
+        const user = await User.findOne({
+            $or: [
+                { uid: query },
+                { username: { $regex: new RegExp("^" + query + "$", "i") } }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                found: false,
+                message: "User not found"
+            });
+        }
+
+        res.json({
+            found: true,
+            uid: user.uid,
+            username: user.username
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        });
+    }
+});
+
 app.post("/send_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
