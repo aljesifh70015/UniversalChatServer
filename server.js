@@ -400,16 +400,18 @@ io.on("connection", (socket) => {
     });
 
     socket.on("user_offline", (uid) => {
-        delete onlineUsers[uid];
+    if (!onlineUsers[uid]) return;
 
-        const lastSeen = "Last seen " + getIndianTime();
-        userLastSeen[uid] = lastSeen;
+    delete onlineUsers[uid];
 
-        io.emit("user_status", {
-            uid,
-            status: lastSeen
-        });
+    const lastSeen = "Last seen " + getIndianTime();
+    userLastSeen[uid] = lastSeen;
+
+    io.emit("user_status", {
+        uid,
+        status: lastSeen
     });
+});
 
     socket.on("send_message", async (data) => {
         try {
@@ -460,22 +462,21 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        if (socket.uid) {
-            delete onlineUsers[socket.uid];
+    if (socket.uid && onlineUsers[socket.uid]) {
+        delete onlineUsers[socket.uid];
 
-            const lastSeen = "Last seen " + getIndianTime();
-            userLastSeen[socket.uid] = lastSeen;
+        const lastSeen = "Last seen " + getIndianTime();
+        userLastSeen[socket.uid] = lastSeen;
 
-            io.emit("user_status", {
-                uid: socket.uid,
-                status: lastSeen
-            });
-        }
+        io.emit("user_status", {
+            uid: socket.uid,
+            status: lastSeen
+        });
+    }
 
-        console.log("User disconnected");
-    });
+    console.log("User disconnected");
 });
-
+    
 app.get("/", (req, res) => {
     res.send("Chat server running");
 });
