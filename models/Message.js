@@ -39,6 +39,16 @@ const MessageSchema = new mongoose.Schema({
     edited: {
         type: Boolean,
         default: false
+    },
+
+    status: {
+        type: String,
+        default: "sent"
+    },
+
+    seen: {
+        type: Boolean,
+        default: false
     }
 });
 
