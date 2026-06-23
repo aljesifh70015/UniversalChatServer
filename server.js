@@ -18,6 +18,19 @@ const User = require("./models/User");
 const Message = require("./models/Message");
 
 const userLastSeen = {};
+const onlineUsers = {};
+
+function getIndianTime() {
+    return new Date().toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
+}
 
 function getExpiryTime(expiryOption) {
     const now = Date.now();
@@ -49,13 +62,7 @@ setInterval(async () => {
 
 app.post("/register", async (req, res) => {
     try {
-        const {
-            uid,
-            username,
-            email,
-            password,
-            deviceId
-        } = req.body;
+        const { uid, username, email, password, deviceId } = req.body;
 
         if (!uid || !username || !email || !password || !deviceId) {
             return res.status(400).json({
@@ -65,7 +72,6 @@ app.post("/register", async (req, res) => {
 
         let user = await User.findOne({ uid });
 
-        // New account create
         if (!user) {
             user = new User({
                 uid,
@@ -86,7 +92,6 @@ app.post("/register", async (req, res) => {
             });
         }
 
-        // Existing user login
         if (user.password !== password) {
             return res.status(401).json({
                 message: "Wrong password",
@@ -94,11 +99,7 @@ app.post("/register", async (req, res) => {
             });
         }
 
-        // Block other device login
-        if (
-            user.loggedInDevice &&
-            user.loggedInDevice !== deviceId
-        ) {
+        if (user.loggedInDevice && user.loggedInDevice !== deviceId) {
             return res.status(403).json({
                 message: "Account already logged in on another device",
                 success: false
@@ -294,62 +295,79 @@ app.get("/friends/:uid", async (req, res) => {
 
 app.get("/chat_list/:uid", async (req, res) => {
     try {
-        const myUid = req.params.uid
-
-        const user = await User.findOne({ uid: myUid })
+        const myUid = req.params.uid;
+        const user = await User.findOne({ uid: myUid });
 
         if (!user) {
-            return res.json([])
+            return res.json([]);
         }
 
-        const chatList = []
+        const chatList = [];
 
         for (const friendUid of user.friends) {
-            const friend = await User.findOne({ uid: friendUid })
+            const friend = await User.findOne({ uid: friendUid });
 
             let roomId =
                 myUid < friendUid
                     ? `${myUid}_${friendUid}`
-                    : `${friendUid}_${myUid}`
+                    : `${friendUid}_${myUid}`;
 
             const lastMessage = await Message.findOne({ roomId })
-                .sort({ timestamp: -1 })
+                .sort({ timestamp: -1 });
 
             chatList.push({
                 uid: friendUid,
                 username: friend?.username || friendUid,
                 lastMessage: lastMessage?.message || "No messages yet",
                 timestamp: lastMessage?.timestamp || 0
-            })
+            });
         }
 
-        chatList.sort((a, b) => b.timestamp - a.timestamp)
+        chatList.sort((a, b) => b.timestamp - a.timestamp);
 
-        res.json(chatList)
+        res.json(chatList);
 
     } catch (err) {
         res.status(500).json({
             error: err.message
-        })
+        });
     }
-})
+});
 
 app.post("/logout/:uid", async (req, res) => {
     try {
-        const uid = req.params.uid
+        const uid = req.params.uid;
 
         await User.updateOne(
             { uid },
             { $set: { loggedInDevice: "" } }
-        )
+        );
 
-        res.json({ message: "logout_success" })
+        delete onlineUsers[uid];
+
+        const lastSeen = "Last seen " + getIndianTime();
+        userLastSeen[uid] = lastSeen;
+
+        res.json({ message: "logout_success" });
     } catch (err) {
         res.status(500).json({
             error: err.message
-        })
+        });
     }
 });
+
+app.get("/status/:uid", (req, res) => {
+    const uid = req.params.uid;
+
+    if (onlineUsers[uid]) {
+        return res.json({ status: "Online" });
+    }
+
+    res.json({
+        status: userLastSeen[uid] || "Offline"
+    });
+});
+
 // ================= SOCKET =================
 
 const io = new Server(server, {
@@ -363,13 +381,15 @@ io.on("connection", (socket) => {
         socket.join(roomId);
     });
 
-    const onlineUsers = {};
+    socket.on("user_online", (uid) => {
+        onlineUsers[uid] = socket.id;
+        socket.uid = uid;
 
-socket.on("user_online", (uid) => {
-    onlineUsers[uid] = socket.id;
-    io.emit("user_status", { uid, status: "Online" });
-});
-
+        io.emit("user_status", {
+            uid,
+            status: "Online"
+        });
+    });
 
     socket.on("typing", (data) => {
         socket.to(data.roomId).emit("typing");
@@ -380,9 +400,15 @@ socket.on("user_online", (uid) => {
     });
 
     socket.on("user_offline", (uid) => {
-        const lastSeen = "Last seen " + new Date().toLocaleString();
+        delete onlineUsers[uid];
+
+        const lastSeen = "Last seen " + getIndianTime();
         userLastSeen[uid] = lastSeen;
-        io.emit("user_status", { uid, status: lastSeen });
+
+        io.emit("user_status", {
+            uid,
+            status: lastSeen
+        });
     });
 
     socket.on("send_message", async (data) => {
@@ -434,6 +460,18 @@ socket.on("user_online", (uid) => {
     });
 
     socket.on("disconnect", () => {
+        if (socket.uid) {
+            delete onlineUsers[socket.uid];
+
+            const lastSeen = "Last seen " + getIndianTime();
+            userLastSeen[socket.uid] = lastSeen;
+
+            io.emit("user_status", {
+                uid: socket.uid,
+                status: lastSeen
+            });
+        }
+
         console.log("User disconnected");
     });
 });
