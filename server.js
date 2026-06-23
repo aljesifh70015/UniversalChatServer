@@ -476,6 +476,8 @@ io.on("connection", (socket) => {
 
     console.log("User disconnected");
 });
+});
+
     
 app.get("/", (req, res) => {
     res.send("Chat server running");
