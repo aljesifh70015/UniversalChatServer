@@ -40,6 +40,11 @@ const UserSchema = new mongoose.Schema({
     friendRequests: {
         type: [String],
         default: []
+    },
+
+    lastSeen: {
+        type: String,
+        default: ""
     }
 });
 
