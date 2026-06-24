@@ -1,55 +1,61 @@
 const mongoose = require("mongoose");
 
 const MessageSchema = new mongoose.Schema({
-    roomId: {
-        type: String,
-        required: true
-    },
+roomId: {
+type: String,
+required: true
+},
 
-    sender: {
-        type: String,
-        required: true
-    },
+sender: {
+    type: String,
+    required: true
+},
 
-    message: {
-        type: String,
-        required: true
-    },
+receiverUid: {
+    type: String,
+    default: ""
+},
 
-    timestamp: {
-        type: Number,
-        required: true
-    },
+message: {
+    type: String,
+    required: true
+},
 
-    expiresAt: {
-        type: Number,
-        default: 0
-    },
+timestamp: {
+    type: Number,
+    required: true
+},
 
-    deletedFor: {
-        type: [String],
-        default: []
-    },
+expiresAt: {
+    type: Number,
+    default: 0
+},
 
-    deletedForEveryone: {
-        type: Boolean,
-        default: false
-    },
+deletedFor: {
+    type: [String],
+    default: []
+},
 
-    edited: {
-        type: Boolean,
-        default: false
-    },
+deletedForEveryone: {
+    type: Boolean,
+    default: false
+},
 
-    status: {
-        type: String,
-        default: "sent"
-    },
+edited: {
+    type: Boolean,
+    default: false
+},
 
-    seen: {
-        type: Boolean,
-        default: false
-    }
+status: {
+    type: String,
+    default: "sent"
+},
+
+seen: {
+    type: Boolean,
+    default: false
+}
+
 });
 
 module.exports = mongoose.model("Message", MessageSchema);
