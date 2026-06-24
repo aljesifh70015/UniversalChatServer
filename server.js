@@ -354,14 +354,14 @@ io.on("connection", (socket) => {
     });
 
     socket.on("user_online", (uid) => {
-        onlineUsers[uid] = socket.id;
-        socket.uid = uid;
+    onlineUsers[uid] = socket.id;
+    socket.uid = uid;
 
-        io.emit("user_status", {
-            uid,
-            status: "Online"
-        });
+    socket.broadcast.emit("user_status", {
+        uid: uid,
+        status: "Online"
     });
+});
 
     socket.on("typing", (data) => {
         socket.to(data.roomId).emit("typing");
@@ -405,6 +405,9 @@ io.on("connection", (socket) => {
     } catch (e) {
         console.log(e);
     }
+});
+    socket.on("watch_friend", (friendUid) => {
+    socket.friendUid = friendUid;
 });
 
     socket.on("send_message", async (data) => {
@@ -495,9 +498,9 @@ io.on("connection", (socket) => {
                 { $set: { lastSeen } }
             );
 
-            io.emit("user_status", {
-                uid: socket.uid,
-                status: lastSeen
+            socket.broadcast.emit("user_status", {
+               uid: socket.uid,
+               status: lastSeen
             });
         }
 
