@@ -10,7 +10,7 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect("YOUR_MONGODB_URL_HERE")
+mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k3jzopc.mongodb.net/?appName=Cluster0")
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
