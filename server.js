@@ -342,7 +342,6 @@ app.get("/chat_list/:uid", async (req, res) => {
     }
 });
 
-
 const io = new Server(server, {
     cors: { origin: "*" }
 });
@@ -380,10 +379,7 @@ io.on("connection", (socket) => {
         const lastSeen = "Last seen " + getIndianTime();
         userLastSeen[uid] = lastSeen;
 
-        await User.updateOne(
-            { uid },
-            { $set: { lastSeen } }
-        );
+        await User.updateOne({ uid }, { $set: { lastSeen } });
 
         io.emit("user_status", {
             uid,
@@ -395,20 +391,17 @@ io.on("connection", (socket) => {
         try {
             let status = "sent";
 
-            const receiverUid = data.receiverUid;
-
-            if (onlineUsers[receiverUid]) {
+            if (data.receiverUid && onlineUsers[data.receiverUid]) {
                 status = "delivered";
             }
 
             const msg = new Message({
                 roomId: data.roomId,
                 sender: data.sender,
-                receiverUid: data.receiverUid,
                 message: data.message,
                 timestamp: Date.now(),
                 expiresAt: getExpiryTime(data.expiryOption),
-                status,
+                status: status,
                 seen: false,
                 deletedFor: [],
                 edited: false
@@ -420,11 +413,10 @@ io.on("connection", (socket) => {
                 _id: msg._id,
                 roomId: msg.roomId,
                 sender: msg.sender,
-                receiverUid: msg.receiverUid,
                 message: msg.message,
                 timestamp: msg.timestamp,
                 status: msg.status,
-                seen: false
+                seen: msg.seen
             });
 
         } catch (err) {
@@ -475,9 +467,7 @@ io.on("connection", (socket) => {
         if (socket.uid && onlineUsers[socket.uid]) {
             delete onlineUsers[socket.uid];
 
-            const lastSeen =
-                "Last seen " + getIndianTime();
-
+            const lastSeen = "Last seen " + getIndianTime();
             userLastSeen[socket.uid] = lastSeen;
 
             await User.updateOne(
@@ -494,6 +484,7 @@ io.on("connection", (socket) => {
         console.log("User disconnected");
     });
 });
+
 
 app.get("/status/:uid", async (req, res) => {
     try {
