@@ -387,6 +387,26 @@ io.on("connection", (socket) => {
         });
     });
 
+    socket.on("get_user_status", async (uid) => {
+    try {
+        const user = await User.findOne({ uid });
+
+        if (onlineUsers[uid]) {
+            socket.emit("user_status", {
+                uid,
+                status: "Online"
+            });
+        } else {
+            socket.emit("user_status", {
+                uid,
+                status: user?.lastSeen || "Last seen unavailable"
+            });
+        }
+    } catch (e) {
+        console.log(e);
+    }
+});
+
     socket.on("send_message", async (data) => {
         try {
             let status = "sent";
