@@ -418,29 +418,37 @@ io.on("connection", (socket) => {
                 status = "delivered";
             }
 
+            
             const msg = new Message({
-                roomId: data.roomId,
-                sender: data.sender,
-                message: data.message,
-                timestamp: Date.now(),
-                expiresAt: getExpiryTime(data.expiryOption),
-                status: status,
-                seen: false,
-                deletedFor: [],
-                edited: false
-            });
+    roomId: data.roomId,
+    sender: data.sender,
+    message: data.message,
+    timestamp: Date.now(),
+    expiresAt: getExpiryTime(data.expiryOption),
+    status: status,
+    seen: false,
+    deletedFor: [],
+    edited: false,
+
+    // Reply fields
+    replyMessage: data.replyMessage || "",
+    replySender: data.replySender || ""
+});
 
             await msg.save();
 
             io.to(data.roomId).emit("receive_message", {
-                _id: msg._id,
-                roomId: msg.roomId,
-                sender: msg.sender,
-                message: msg.message,
-                timestamp: msg.timestamp,
-                status: msg.status,
-                seen: msg.seen
-            });
+    _id: msg._id,
+    roomId: msg.roomId,
+    sender: msg.sender,
+    message: msg.message,
+    timestamp: msg.timestamp,
+    status: msg.status,
+    seen: msg.seen,
+
+    replyMessage: msg.replyMessage,
+    replySender: msg.replySender
+});
 
         } catch (err) {
             console.log(err);
