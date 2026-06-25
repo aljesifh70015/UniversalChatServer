@@ -411,49 +411,50 @@ io.on("connection", (socket) => {
 });
 
     socket.on("send_message", async (data) => {
-        try {
-            let status = "sent";
+    try {
+        let status = "sent";
 
-            if (data.receiverUid && onlineUsers[data.receiverUid]) {
-                status = "delivered";
-            }
-
-            
-            const msg = new Message({
-    roomId: data.roomId,
-    sender: data.sender,
-    message: data.message,
-    timestamp: Date.now(),
-    expiresAt: getExpiryTime(data.expiryOption),
-    status: status,
-    seen: false,
-    deletedFor: [],
-    edited: false,
-
-    // Reply fields
-    replyMessage: data.replyMessage || "",
-    replySender: data.replySender || ""
-});
-
-            await msg.save();
-
-            io.to(data.roomId).emit("receive_message", {
-    _id: msg._id,
-    roomId: msg.roomId,
-    sender: msg.sender,
-    message: msg.message,
-    timestamp: msg.timestamp,
-    status: msg.status,
-    seen: msg.seen,
-
-    replyMessage: msg.replyMessage,
-    replySender: msg.replySender
-});
-
-        } catch (err) {
-            console.log(err);
+        if (data.receiverUid && onlineUsers[data.receiverUid]) {
+            status = "delivered";
         }
-    });
+
+        const msg = new Message({
+            roomId: data.roomId,
+            sender: data.sender,
+            message: data.message,
+            timestamp: Date.now(),
+            expiresAt: getExpiryTime(data.expiryOption),
+            status: status,
+            seen: false,
+            deletedFor: [],
+            edited: false,
+
+            // Reply fields
+            replyMessage: data.replyMessage || "",
+            replySender: data.replySender || ""
+        });
+
+        await msg.save();
+
+        io.to(data.roomId).emit("receive_message", {
+            _id: msg._id,
+            roomId: msg.roomId,
+            sender: msg.sender,
+            message: msg.message,
+            timestamp: msg.timestamp,
+            status: msg.status,
+            seen: msg.seen,
+
+            replyMessage: msg.replyMessage || "",
+            replySender: msg.replySender || ""
+        });
+
+    } catch (err) {
+        console.log("send_message error:", err);
+    }
+});
+
+    
 
     socket.on("message_seen", async (messageId) => {
         try {
