@@ -41,6 +41,26 @@ function getIndianTime() {
     });
 }
 
+async function sendPushNotification(token, title, body) {
+    try {
+        const message = {
+            token: token,
+            notification: {
+                title: title,
+                body: body
+            },
+            data: {
+                click_action: "CHAT_NOTIFICATION"
+            }
+        };
+
+        await admin.messaging().send(message);
+        console.log("Push sent");
+    } catch (err) {
+        console.log("Push error:", err);
+    }
+}
+
 function getExpiryTime(expiryOption) {
     const now = Date.now();
 
@@ -123,6 +143,32 @@ app.post("/register", async (req, res) => {
 
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.post("/save_fcm_token", async (req, res) => {
+    try {
+        const { uid, token } = req.body;
+
+        if (!uid || !token) {
+            return res.status(400).json({
+                message: "uid and token required"
+            });
+        }
+
+        await User.updateOne(
+            { uid },
+            { $set: { fcmToken: token } }
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        });
     }
 });
 
