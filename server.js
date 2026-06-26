@@ -4,8 +4,17 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
 const app = express();
 const server = http.createServer(app);
+
+
 
 app.use(cors());
 app.use(express.json());
