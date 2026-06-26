@@ -45,6 +45,12 @@ const UserSchema = new mongoose.Schema({
     lastSeen: {
         type: String,
         default: ""
+    },
+
+    // NEW: Firebase Push Token
+    fcmToken: {
+        type: String,
+        default: ""
     }
 });
 
