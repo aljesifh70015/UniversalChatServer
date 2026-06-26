@@ -491,6 +491,22 @@ io.on("connection", (socket) => {
 
         await msg.save();
 
+        const receiver = await User.findOne({
+            uid: data.receiverUid
+        });
+
+        if (
+            receiver &&
+            receiver.fcmToken &&
+            !onlineUsers[data.receiverUid]
+        ) {
+            await sendPushNotification(
+                receiver.fcmToken,
+                "New message",
+                data.message
+           );
+        }
+
         io.to(data.roomId).emit("receive_message", {
             _id: msg._id,
             roomId: msg.roomId,
