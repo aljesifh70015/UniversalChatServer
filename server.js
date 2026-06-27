@@ -483,14 +483,13 @@ io.on("connection", (socket) => {
             seen: false,
             deletedFor: [],
             edited: false,
-
-            // Reply fields
             replyMessage: data.replyMessage || "",
             replySender: data.replySender || ""
         });
 
         await msg.save();
 
+        // ===== Push notification send =====
         const receiver = await User.findOne({
             uid: data.receiverUid
         });
@@ -502,9 +501,9 @@ io.on("connection", (socket) => {
         ) {
             await sendPushNotification(
                 receiver.fcmToken,
-                "New message",
+                "New message from " + data.sender,
                 data.message
-           );
+            );
         }
 
         io.to(data.roomId).emit("receive_message", {
@@ -515,7 +514,6 @@ io.on("connection", (socket) => {
             timestamp: msg.timestamp,
             status: msg.status,
             seen: msg.seen,
-
             replyMessage: msg.replyMessage || "",
             replySender: msg.replySender || ""
         });
@@ -524,7 +522,6 @@ io.on("connection", (socket) => {
         console.log("send_message error:", err);
     }
 });
-
     
 
     socket.on("message_seen", async (messageId) => {
