@@ -404,6 +404,16 @@ io.on("connection", (socket) => {
         uid: uid,
         status: "Online"
     });
+
+const activeChats = {};
+        socket.on("open_chat", (data) => {
+            activeChats[data.uid] = data.friendUid;
+        });
+
+        socket.on("close_chat", (uid) => {
+            delete activeChats[uid];
+        });
+        
 });
 
     socket.on("typing", (data) => {
