@@ -22,6 +22,7 @@ const Message = require("./models/Message");
 
 const onlineUsers = {};
 const userLastSeen = {};
+const activeChats = {};
 
 function getIndianTime() {
     return new Date().toLocaleString("en-IN", {
@@ -392,6 +393,16 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
+    socket.on("open_chat", (data) => {
+    activeChats[data.uid] = data.friendUid;
+    console.log(data.uid + " opened chat with " + data.friendUid);
+});
+
+socket.on("close_chat", (uid) => {
+    delete activeChats[uid];
+    console.log(uid + " closed chat");
+});
+
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
     });
@@ -404,16 +415,6 @@ io.on("connection", (socket) => {
         uid: uid,
         status: "Online"
     });
-
-const activeChats = {};
-        socket.on("open_chat", (data) => {
-            activeChats[data.uid] = data.friendUid;
-        });
-
-        socket.on("close_chat", (uid) => {
-            delete activeChats[uid];
-        });
-        
 });
 
     socket.on("typing", (data) => {
@@ -495,20 +496,32 @@ const activeChats = {};
             uid: data.receiverUid
         });
 
+        const receiverActiveChat = activeChats[data.receiverUid];
+
         console.log("receiver =", receiver);
         console.log("token =", receiver?.fcmToken);
         console.log("online =", onlineUsers[data.receiverUid]);
+        console.log("active chat =", receiverActiveChat);
 
-        if (receiver && receiver.fcmToken) {
-            console.log("SENDING PUSH...");
-    
-            await sendPushNotification(
-                receiver.fcmToken,
-                "New message from " + data.sender,
-                data.message
-            );
-        }
+       const shouldSendPush =
+           receiver &&
+           receiver.fcmToken &&
+          (
+               !onlineUsers[data.receiverUid] ||
+               receiverActiveChat !== data.sender
+        );
 
+      if (shouldSendPush) {
+          console.log("SENDING PUSH...");
+
+          await sendPushNotification(
+              receiver.fcmToken,
+              "New message from " + data.sender,
+              data.message
+        );
+    } else {
+        console.log("PUSH BLOCKED (chat already open)");
+    }
         io.to(data.roomId).emit("receive_message", {
             _id: msg._id,
             roomId: msg.roomId,
