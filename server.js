@@ -10,6 +10,7 @@ const serviceAccount = JSON.parse(
     process.env.FIREBASE_ADMIN_JSON
 );
 
+console.log("Firebase loaded =", !!process.env.FIREBASE_ADMIN_JSON);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
@@ -503,11 +504,9 @@ io.on("connection", (socket) => {
         console.log("token =", receiver?.fcmToken);
         console.log("online =", onlineUsers[data.receiverUid]);
 
-        if (
-            receiver &&
-            receiver.fcmToken &&
-            !onlineUsers[data.receiverUid]
-        ) {
+        if (receiver && receiver.fcmToken) {
+            console.log("SENDING PUSH...");
+    
             await sendPushNotification(
                 receiver.fcmToken,
                 "New message from " + data.sender,
