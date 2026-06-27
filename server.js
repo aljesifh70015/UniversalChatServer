@@ -45,9 +45,11 @@ async function sendPushNotification(token, title, body) {
                 body: body
             },
             data: {
-                click_action: "CHAT_NOTIFICATION"
+                click_action: "CHAT_NOTIFICATION",
+                senderUid: data.sender || "",
+                senderName: title || ""
             }
-        };
+        }
 
         await admin.messaging().send(message);
         console.log("Push sent");
