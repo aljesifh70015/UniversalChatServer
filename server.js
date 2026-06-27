@@ -489,10 +489,17 @@ io.on("connection", (socket) => {
 
         await msg.save();
 
+        console.log("MESSAGE RECEIVED");
+        console.log("receiverUid =", data.receiverUid);
+
         // ===== Push notification send =====
         const receiver = await User.findOne({
             uid: data.receiverUid
         });
+
+        console.log("receiver =", receiver);
+        console.log("token =", receiver?.fcmToken);
+        console.log("online =", onlineUsers[data.receiverUid]);
 
         if (
             receiver &&
