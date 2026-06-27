@@ -144,25 +144,19 @@ app.post("/save_fcm_token", async (req, res) => {
     try {
         const { uid, token } = req.body;
 
-        if (!uid || !token) {
-            return res.status(400).json({
-                message: "uid and token required"
-            });
-        }
+        console.log("TOKEN SAVE REQUEST");
+        console.log("uid =", uid);
+        console.log("token =", token);
 
         await User.updateOne(
             { uid },
             { $set: { fcmToken: token } }
         );
 
-        res.json({
-            success: true
-        });
-
+        res.json({ success: true });
     } catch (err) {
-        res.status(500).json({
-            error: err.message
-        });
+        console.log(err);
+        res.status(500).json({ error: err.message });
     }
 });
 
