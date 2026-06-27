@@ -13,7 +13,6 @@ const serviceAccount = JSON.parse(
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
-
 const app = express();
 const server = http.createServer(app);
 
