@@ -5,7 +5,10 @@ const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 
 const admin = require("firebase-admin");
-const serviceAccount = require("./firebase-admin.json");
+
+const serviceAccount = JSON.parse(
+    process.env.FIREBASE_ADMIN_JSON
+);
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
