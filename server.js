@@ -4,19 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 
-const admin = require("firebase-admin");
-
-const serviceAccount = JSON.parse(
-    process.env.FIREBASE_ADMIN_JSON
-);
-
-console.log("Firebase loaded =", !!process.env.FIREBASE_ADMIN_JSON);
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
-const app = express();
-const server = http.createServer(app);
-
+const admin = require("./firebase");
 
 
 app.use(cors());
