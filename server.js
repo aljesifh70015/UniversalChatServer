@@ -6,6 +6,9 @@ const { Server } = require("socket.io");
 
 const admin = require("./firebase");
 
+const app = express();
+const server = http.createServer(app);
+
 
 app.use(cors());
 app.use(express.json());
