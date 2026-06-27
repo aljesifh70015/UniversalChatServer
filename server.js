@@ -514,11 +514,15 @@ socket.on("close_chat", (uid) => {
       if (shouldSendPush) {
           console.log("SENDING PUSH...");
 
+          const senderUser = await User.findOne({
+              uid: data.sender
+          });
+
           await sendPushNotification(
               receiver.fcmToken,
-              "New message from " + data.sender,
+              senderUser?.username || data.sender,
               data.message
-        );
+          );
     } else {
         console.log("PUSH BLOCKED (chat already open)");
     }
