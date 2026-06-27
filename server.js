@@ -13,7 +13,6 @@ const serviceAccount = JSON.parse(
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
-console.log("ENV CHECK:", process.env.FIREBASE_ADMIN_JSON);
 const app = express();
 const server = http.createServer(app);
 
