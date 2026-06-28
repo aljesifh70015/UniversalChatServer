@@ -47,8 +47,12 @@ const UserSchema = new mongoose.Schema({
         default: ""
     },
 
-    // NEW: Firebase Push Token
     fcmToken: {
+        type: String,
+        default: ""
+    },
+
+    profilePic: {
         type: String,
         default: ""
     }
