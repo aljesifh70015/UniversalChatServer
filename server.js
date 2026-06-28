@@ -9,9 +9,13 @@ const admin = require("./firebase");
 const app = express();
 const server = http.createServer(app);
 
+const multer = require("multer");
+const cloudinary = require("./cloudinary");
+
 
 app.use(cors());
 app.use(express.json());
+const upload = multer({ dest: "uploads/" });
 
 mongoose.connect("mongodb+srv://aljesifhoque_db_user:67UF0MniHFtG98d2@cluster0.k3jzopc.mongodb.net/?appName=Cluster0")
 .then(() => console.log("MongoDB Connected"))
@@ -142,6 +146,43 @@ app.post("/register", async (req, res) => {
     }
 });
 
+app.post("/upload-profile", upload.single("image"), async (req, res) => {
+    try {
+        const uid = req.body.uid;
+
+        if (!uid || !req.file) {
+            return res.status(400).json({
+                error: "Missing uid or image"
+            });
+        }
+
+        const result = await cloudinary.uploader.upload(
+            req.file.path,
+            {
+                folder: "universal_chat_profiles"
+            }
+        );
+
+        const imageUrl = result.secure_url;
+
+        await User.updateOne(
+            { uid: uid },
+            { $set: { profilePic: imageUrl } }
+        );
+
+        res.json({
+            success: true,
+            imageUrl: imageUrl
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            error: "Upload failed"
+        });
+    }
+});
+
 app.post("/save_fcm_token", async (req, res) => {
     try {
         const { uid, token } = req.body;
@@ -164,19 +205,28 @@ app.post("/save_fcm_token", async (req, res) => {
 
 app.get("/user/:uid", async (req, res) => {
     try {
-        const user = await User.findOne({ uid: req.params.uid });
+        const user = await User.findOne({
+            uid: req.params.uid
+        });
 
         if (!user) {
-            return res.status(404).json({ found: false });
+            return res.status(404).json({
+                found: false
+            });
         }
 
         res.json({
             found: true,
             uid: user.uid,
-            username: user.username
+            username: user.username,
+            profilePic: user.profilePic || "",
+            email: user.email || ""
         });
+
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({
+            error: err.message
+        });
     }
 });
 
