@@ -36,7 +36,7 @@ function getIndianTime() {
     });
 }
 
-async function sendPushNotification(token, title, body) {
+async function sendPushNotification(token, title, body, senderUid) {
     try {
         const message = {
             token: token,
@@ -45,19 +45,18 @@ async function sendPushNotification(token, title, body) {
                 body: body
             },
             data: {
-                click_action: "CHAT_NOTIFICATION",
-                senderUid: data.sender || "",
-                senderName: title || ""
+                title: title,
+                body: body,
+                senderUid: senderUid
             }
-        }
+        };
 
         await admin.messaging().send(message);
         console.log("Push sent");
     } catch (err) {
-        console.log("Push error:", err);
+        console.log(err);
     }
 }
-
 function getExpiryTime(expiryOption) {
     const now = Date.now();
 
@@ -400,10 +399,10 @@ io.on("connection", (socket) => {
     console.log(data.uid + " opened chat with " + data.friendUid);
 });
 
-socket.on("close_chat", (uid) => {
-    delete activeChats[uid];
-    console.log(uid + " closed chat");
-});
+    socket.on("close_chat", (uid) => {
+        delete activeChats[uid];
+        console.log(uid + " closed chat");
+    });
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
@@ -523,8 +522,9 @@ socket.on("close_chat", (uid) => {
           await sendPushNotification(
               receiver.fcmToken,
               senderUser?.username || data.sender,
-              data.message
-          );
+              data.message,
+              data.sender
+         );
     } else {
         console.log("PUSH BLOCKED (chat already open)");
     }
