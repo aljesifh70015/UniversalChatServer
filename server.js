@@ -233,40 +233,28 @@ uid: req.params.uid
 
 });
 
-app.post("/update-profile", async (req, res) => {
-try {
-const { uid, name, bio } = req.body;
+app.post("/update_profile", async (req, res) => {
+    try {
+        const { uid, username, bio } = req.body;
 
-    if (!uid) {
-        return res.status(400).json({
+        await User.updateOne(
+            { uid: uid },
+            {
+                $set: {
+                    usernameEditable: username,
+                    bio: bio
+                }
+            }
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({
             success: false,
-            message: "uid missing"
+            error: err.message
         });
     }
-
-    await User.updateOne(
-        { uid: uid },
-        {
-            $set: {
-                name: name || "",
-                bio: bio || ""
-            }
-        }
-    );
-
-    res.json({
-        success: true
-    });
-
-} catch (err) {
-    res.status(500).json({
-        success: false,
-        error: err.message
-    });
-}
-
 });
-
 app.get("/search_user/:query", async (req, res) => {
     try {
         const query = req.params.query;
