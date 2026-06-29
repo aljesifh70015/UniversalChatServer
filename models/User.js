@@ -57,7 +57,7 @@ profilePic: {
     default: ""
 },
 
-name: {
+usernameEditable: {
     type: String,
     default: ""
 },
@@ -66,7 +66,6 @@ bio: {
     type: String,
     default: ""
 }
-
 });
 
 module.exports = mongoose.model("User", UserSchema);
