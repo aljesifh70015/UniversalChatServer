@@ -204,54 +204,50 @@ app.post("/save_fcm_token", async (req, res) => {
 });
 
 app.get("/user/:uid", async (req, res) => {
-try {
-const user = await User.findOne({
-uid: req.params.uid
-});
+    try {
+        const user = await User.findOne({ uid: req.params.uid });
 
-    if (!user) {
-        return res.status(404).json({
-            found: false
+        if (!user) {
+            return res.status(404).json({
+                found: false
+            });
+        }
+
+        res.json({
+            found: true,
+            uid: user.uid,
+            username: user.username,
+            bio: user.bio || "",
+            profilePic: user.profilePic || "",
+            email: user.email || ""
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
         });
     }
-
-    res.json({
-        found: true,
-        uid: user.uid,
-        username: user.username,
-        email: user.email || "",
-        profilePic: user.profilePic || "",
-        name: user.name || "",
-        bio: user.bio || ""
-    });
-
-} catch (err) {
-    res.status(500).json({
-        error: err.message
-    });
-}
-
 });
-
 app.post("/update_profile", async (req, res) => {
     try {
         const { uid, username, bio } = req.body;
 
         await User.updateOne(
-            { uid: uid },
+            { uid },
             {
                 $set: {
-                    usernameEditable: username,
-                    bio: bio
+                    username,
+                    bio
                 }
             }
         );
 
-        res.json({ success: true });
+        res.json({
+            success: true
+        });
     } catch (err) {
         res.status(500).json({
-            success: false,
-            error: err.message
+            success: false
         });
     }
 });
