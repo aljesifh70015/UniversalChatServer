@@ -218,15 +218,9 @@ app.get("/user/:uid", async (req, res) => {
         res.json({
             found: true,
             uid: user.uid,
-            name: {
-               type: String,
-               default: ""
-            },
-            bio: {
-               type: String,
-               default: ""
-            }
             username: user.username,
+            name: user.name || "",
+            bio: user.bio || "",
             profilePic: user.profilePic || "",
             email: user.email || ""
         });
