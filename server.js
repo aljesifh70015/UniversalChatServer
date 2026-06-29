@@ -148,6 +148,9 @@ app.post("/register", async (req, res) => {
 
 app.post("/upload-profile", upload.single("image"), async (req, res) => {
     try {
+        console.log("BODY:", req.body)
+        console.log("FILE:", req.file)
+
         const uid = req.body.uid;
 
         if (!uid || !req.file) {
@@ -230,6 +233,8 @@ app.get("/user/:uid", async (req, res) => {
 });
 app.post("/update_profile", async (req, res) => {
     try {
+        console.log("BODY:", req.body)
+
         const { uid, username, bio } = req.body;
 
         await User.updateOne(
@@ -242,13 +247,11 @@ app.post("/update_profile", async (req, res) => {
             }
         );
 
-        res.json({
-            success: true
-        });
+        res.json({ success: true });
+
     } catch (err) {
-        res.status(500).json({
-            success: false
-        });
+        console.log(err);
+        res.status(500).json({ success: false });
     }
 });
 app.get("/search_user/:query", async (req, res) => {
