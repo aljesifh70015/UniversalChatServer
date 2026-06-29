@@ -217,9 +217,9 @@ app.get("/user/:uid", async (req, res) => {
             found: true,
             uid: user.uid,
             username: user.username,
-            bio: user.bio || "",
             profilePic: user.profilePic || "",
-            email: user.email || ""
+            email: user.email || "",
+            bio: user.bio || ""
         });
 
     } catch (err) {
