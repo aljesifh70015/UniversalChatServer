@@ -204,56 +204,67 @@ app.post("/save_fcm_token", async (req, res) => {
 });
 
 app.get("/user/:uid", async (req, res) => {
-    try {
-        const user = await User.findOne({
-            uid: req.params.uid
-        });
+try {
+const user = await User.findOne({
+uid: req.params.uid
+});
 
-        if (!user) {
-            return res.status(404).json({
-                found: false
-            });
-        }
-
-        res.json({
-            found: true,
-            uid: user.uid,
-            username: user.username,
-            name: user.name || "",
-            bio: user.bio || "",
-            profilePic: user.profilePic || "",
-            email: user.email || ""
-        });
-
-    } catch (err) {
-        res.status(500).json({
-            error: err.message
+    if (!user) {
+        return res.status(404).json({
+            found: false
         });
     }
+
+    res.json({
+        found: true,
+        uid: user.uid,
+        username: user.username,
+        email: user.email || "",
+        profilePic: user.profilePic || "",
+        name: user.name || "",
+        bio: user.bio || ""
+    });
+
+} catch (err) {
+    res.status(500).json({
+        error: err.message
+    });
+}
+
 });
 
 app.post("/update-profile", async (req, res) => {
-    try {
-        const { uid, name, bio } = req.body;
+try {
+const { uid, name, bio } = req.body;
 
-        await User.updateOne(
-            { uid },
-            {
-                $set: {
-                    name,
-                    bio
-                }
-            }
-        );
-
-        res.json({ success: true });
-
-    } catch (err) {
-        res.status(500).json({
+    if (!uid) {
+        return res.status(400).json({
             success: false,
-            error: err.message
+            message: "uid missing"
         });
     }
+
+    await User.updateOne(
+        { uid: uid },
+        {
+            $set: {
+                name: name || "",
+                bio: bio || ""
+            }
+        }
+    );
+
+    res.json({
+        success: true
+    });
+
+} catch (err) {
+    res.status(500).json({
+        success: false,
+        error: err.message
+    });
+}
+
 });
 
 app.get("/search_user/:query", async (req, res) => {
