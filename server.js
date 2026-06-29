@@ -218,6 +218,14 @@ app.get("/user/:uid", async (req, res) => {
         res.json({
             found: true,
             uid: user.uid,
+            name: {
+               type: String,
+               default: ""
+            },
+            bio: {
+               type: String,
+               default: ""
+            }
             username: user.username,
             profilePic: user.profilePic || "",
             email: user.email || ""
@@ -225,6 +233,30 @@ app.get("/user/:uid", async (req, res) => {
 
     } catch (err) {
         res.status(500).json({
+            error: err.message
+        });
+    }
+});
+
+app.post("/update-profile", async (req, res) => {
+    try {
+        const { uid, name, bio } = req.body;
+
+        await User.updateOne(
+            { uid },
+            {
+                $set: {
+                    name,
+                    bio
+                }
+            }
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
             error: err.message
         });
     }
