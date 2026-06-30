@@ -447,7 +447,8 @@ app.get("/chat_list/:uid", async (req, res) => {
                 uid: friendUid,
                 username: friend?.username || friendUid,
                 lastMessage: lastMessage?.message || "No messages yet",
-                timestamp: lastMessage?.timestamp || 0
+                timestamp: lastMessage?.timestamp || 0,
+                profilePic: friend?.profilePic || ""
             });
         }
 
