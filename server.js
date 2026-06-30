@@ -233,6 +233,7 @@ app.get("/user/:uid", async (req, res) => {
 });
 app.post("/update_profile", async (req, res) => {
     try {
+        console.log("UPDATE BODY =", req.body)
         console.log("BODY:", req.body)
 
         const { uid, username, bio } = req.body;
