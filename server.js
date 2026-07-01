@@ -283,7 +283,6 @@ app.get("/search_user/:query", async (req, res) => {
     }
 });
 
-
 app.post("/send_friend_request", async (req, res) => {
     try {
         const { myUid, friendUid } = req.body;
@@ -306,7 +305,21 @@ app.post("/send_friend_request", async (req, res) => {
         friend.friendRequests.push(myUid);
         await friend.save();
 
+        // ===== FCM notification =====
+        if (friend.fcmToken) {
+            await sendPushNotification(
+                friend.fcmToken,
+                "New Friend Request",
+                `${me.username} sent you a friend request`,
+                {
+                    type: "friend_request",
+                    senderUid: myUid
+                }
+            );
+        }
+
         res.json({ message: "Request Sent" });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
