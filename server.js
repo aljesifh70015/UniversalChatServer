@@ -326,7 +326,7 @@ app.post("/send_friend_request", async (req, res) => {
         
 
         // ===== FCM notification =====
-        if (friend.fcmToken) {
+        if (friend.loggedInDevice && friend.fcmToken) {
             await sendPushNotification(
                 friend.fcmToken,
                 "New Friend Request",
@@ -613,11 +613,12 @@ io.on("connection", (socket) => {
 
        const shouldSendPush =
            receiver &&
+           receiver.loggedInDevice &&
            receiver.fcmToken &&
-          (
+           (
                !onlineUsers[data.receiverUid] ||
                receiverActiveChat !== data.sender
-        );
+           );
 
       if (shouldSendPush) {
           console.log("SENDING PUSH...");
@@ -758,7 +759,8 @@ app.post("/logout/:uid", async (req, res) => {
             {
                 $set: {
                     loggedInDevice: "",
-                    lastSeen: lastSeen
+                    lastSeen: lastSeen,
+                    fcmToken: ""
                 }
             }
         );
