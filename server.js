@@ -506,10 +506,11 @@ io.on("connection", (socket) => {
     console.log(data.uid + " opened chat with " + data.friendUid);
 });
 
-    socket.on("close_chat", (uid) => {
-        delete activeChats[uid];
-        console.log(uid + " closed chat");
-    });
+    socket.on("join_room", (data) => {
+        socket.join(data.roomId)
+        socket.currentRoom = data.roomId
+        socket.chattingWith = data.friendUid
+    })
 
     socket.on("join_room", (roomId) => {
         socket.join(roomId);
@@ -526,12 +527,24 @@ io.on("connection", (socket) => {
 });
 
     socket.on("typing", (data) => {
-        socket.to(data.roomId).emit("typing");
-    });
+        const receiverSocketId = onlineUsers[data.receiverUid]
 
-    socket.on("stop_typing", (roomId) => {
-        socket.to(roomId).emit("stop_typing");
-    });
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("typing", {
+                senderUid: data.senderUid
+            })
+        }
+    })
+
+    socket.on("stop_typing", (data) => {
+        const receiverSocketId = onlineUsers[data.receiverUid]
+
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("stop_typing", {
+                senderUid: data.senderUid
+            })
+        }
+    })
 
     socket.on("user_offline", async (uid) => {
         if (!onlineUsers[uid]) return;
@@ -638,17 +651,28 @@ io.on("connection", (socket) => {
     } else {
         console.log("PUSH BLOCKED (chat already open)");
     }
-        io.to(data.roomId).emit("receive_message", {
-            _id: msg._id,
-            roomId: msg.roomId,
-            sender: msg.sender,
-            message: msg.message,
-            timestamp: msg.timestamp,
-            status: msg.status,
-            seen: msg.seen,
-            replyMessage: msg.replyMessage || "",
-            replySender: msg.replySender || ""
-        });
+        const payload = {
+           _id: msg._id,
+           roomId: msg.roomId,
+           sender: msg.sender,
+           message: msg.message,
+           timestamp: msg.timestamp,
+           status: msg.status,
+           seen: msg.seen,
+           replyMessage: msg.replyMessage || "",
+           replySender: msg.replySender || ""
+       };
+
+       const senderSocket = onlineUsers[data.sender];
+       const receiverSocket = onlineUsers[data.receiverUid];
+
+       if (senderSocket) {
+           io.to(senderSocket).emit("receive_message", payload);
+       }
+
+       if (receiverSocket) {
+           io.to(receiverSocket).emit("receive_message", payload);
+       }
 
     } catch (err) {
         console.log("send_message error:", err);
