@@ -40,7 +40,13 @@ function getIndianTime() {
     });
 }
 
-async function sendPushNotification(token, title, body, senderUid) {
+async function sendPushNotification(
+    token,
+    title,
+    body,
+    senderUid,
+    type = "message"
+) {
     try {
         const message = {
             token: token,
@@ -49,16 +55,21 @@ async function sendPushNotification(token, title, body, senderUid) {
                 body: body
             },
             data: {
-                title: title,
-                body: body,
-                senderUid: senderUid
+                title: String(title),
+                body: String(body),
+                senderUid: String(senderUid || ""),
+                type: String(type)
+            },
+            android: {
+                priority: "high"
             }
         };
 
-        await admin.messaging().send(message);
-        console.log("Push sent");
+        const response = await admin.messaging().send(message);
+        console.log("Push sent:", response);
+
     } catch (err) {
-        console.log(err);
+        console.log("Push error:", err);
     }
 }
 function getExpiryTime(expiryOption) {
@@ -305,9 +316,14 @@ app.post("/send_friend_request", async (req, res) => {
         friend.friendRequests.push(myUid);
         await friend.save();
 
+        console.log("Friend request notification debug:");
+        console.log("friend.fcmToken =", friend.fcmToken);
+        console.log("me.username =", me.username);
+
         console.log("myUid =", myUid)
         console.log("friendUid =", friendUid)
         console.log("friend token =", friend.fcmToken)
+        
 
         // ===== FCM notification =====
         if (friend.fcmToken) {
@@ -315,10 +331,8 @@ app.post("/send_friend_request", async (req, res) => {
                 friend.fcmToken,
                 "New Friend Request",
                 `${me.username} sent you a friend request`,
-                {
-                    type: "friend_request",
-                    senderUid: myUid
-                }
+                myUid,
+                "friend_request"
             );
         }
 
