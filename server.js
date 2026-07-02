@@ -305,6 +305,10 @@ app.post("/send_friend_request", async (req, res) => {
         friend.friendRequests.push(myUid);
         await friend.save();
 
+        console.log("myUid =", myUid)
+        console.log("friendUid =", friendUid)
+        console.log("friend token =", friend.fcmToken)
+
         // ===== FCM notification =====
         if (friend.fcmToken) {
             await sendPushNotification(
