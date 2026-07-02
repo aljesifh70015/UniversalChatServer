@@ -613,8 +613,10 @@ io.on("connection", (socket) => {
 
        const shouldSendPush =
            receiver &&
-           receiver.loggedInDevice &&
            receiver.fcmToken &&
+           receiver.fcmToken !== "" &&
+           receiver.loggedInDevice &&
+           receiver.loggedInDevice !== "" &&
            (
                !onlineUsers[data.receiverUid] ||
                receiverActiveChat !== data.sender
